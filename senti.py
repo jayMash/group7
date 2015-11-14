@@ -118,7 +118,10 @@ def sentence_score(sentence_tokens, previous_token, acum_score):
             elif 'dec' in previous_tags:
                 token_score /= 2.0
             elif 'inv' in previous_tags:
-                token_score *= -1.0
+                if 'inv' in tags:
+                    token_score += 1.0
+                else:
+                    token_score *= -1.0
 
         return sentence_score(sentence_tokens[1:], current_token, acum_score + token_score)
 #################################################3
