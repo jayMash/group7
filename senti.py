@@ -102,28 +102,58 @@ def value_of(sentiment):
     return 0
 
 def sentiment_score(review):
-    return sum([sentence_score(sentence, None, 0.0) for sentence in review])
+    return sum([sentence_score(0 ,sentence, None, None, 0.0) for sentence in review])
 
-def sentence_score(sentence_tokens, previous_token, acum_score):
+def sentence_score(iteration, sentence_tokens, previous_token, prev_previous_token, acum_score):
     if not sentence_tokens:
         return acum_score
     else:
         current_token = sentence_tokens[0]
         tags = current_token[2]
         token_score = sum([value_of(tag) for tag in tags])
-        if previous_token is not None:
-            previous_tags = previous_token[2]
-            if 'inc' in previous_tags:
-                token_score *= 2.0
-            elif 'dec' in previous_tags:
-                token_score /= 2.0
-            elif 'inv' in previous_tags:
-                if 'inv' in tags:
-                    token_score += 1.0
-                else:
+
+        #From third token
+        if prev_previous_token is not None:
+            if previous_token is not None:
+                previous_tags = previous_token[2]
+                prev_previous_tags = prev_previous_token[2]
+                if 'inc' in previous_tags:
+                    token_score *= 2.0
+                elif 'dec' in previous_tags:
+                    token_score /= 2.0
+                elif 'inv' in previous_tags:
+                    if prev_previous_token is None:
+                        if 'inv' in tags:
+                            token_score += 1.0
+                        else:
+                            token_score *= -1.0
+                    else:
+                        if 'inv' in prev_previous_tags:
+                            token_score *= -1.0
+                        else:
+                            if 'inv' in tags:
+                                token_score += 1.0
+                            else:
+                                token_score *= -1.0
+                elif 'inv' in prev_previous_tags:
                     token_score *= -1.0
 
-        return sentence_score(sentence_tokens[1:], current_token, acum_score + token_score)
+        #From second token
+        elif previous_token is not None:
+                previous_tags = previous_token[2]
+                if 'inc' in previous_tags:
+                    token_score *= 2.0
+                elif 'dec' in previous_tags:
+                    token_score /= 2.0
+                elif 'inv' in previous_tags:
+                    if 'inv' in tags:
+                        token_score += 1.0
+                    else:
+                        token_score *= -1.0
+        if iteration == 0:
+            return sentence_score( iteration+1, sentence_tokens[1:], current_token, None, acum_score + token_score)
+        if iteration > 0:
+            return sentence_score( iteration+1, sentence_tokens[1:], current_token, previous_token, acum_score + token_score)
 #################################################3
 
 # text = """What can I say about this place. The staff of the restaurant is nice and the eggplant is not bad. Apart from that, very uninspired food, lack of atmosphere and too expensive. I am a staunch vegetarian and was sorely dissapointed with the veggie options on the menu. Will be the last time I visit, I recommend others to avoid."""
@@ -133,7 +163,7 @@ splitter = Splitter()
 postagger = POSTagger()
 
 splitted_sentences = splitter.split(text)
-# print(splitted_sentences)
+print(splitted_sentences)
 #[['What', 'can', 'I', 'say', 'about', 'this', 'place', '.'], ['The', 'staff', 'of', 'the', 'restaurant', 'is', 'nice', 'and', 'eggplant', 'is', 'not', 'bad', '.'], ['apart', 'from', 'that', ',', 'very', 'uninspired', 'food', ',', 'lack', 'of', 'atmosphere', 'and', 'too', 'expensive', '.'], ['I', 'am', 'a', 'staunch', 'vegetarian', 'and', 'was', 'sorely', 'dissapointed', 'with', 'the', 'veggie', 'options', 'on', 'the', 'menu', '.'], ['Will', 'be', 'the', 'last', 'time', 'I', 'visit', ',', 'I', 'recommend', 'others', 'to', 'avoid', '.']]
 
 ###################################################
@@ -148,7 +178,7 @@ dicttagger = DictionaryTagger([ 'dicts/positive_1.yml', 'dicts/negative_1.yml', 
 
 dict_tagged_sentences = dicttagger.tag(pos_tagged_sentences)
 
-# print(dict_tagged_sentences)
+print(dict_tagged_sentences)
 ########################################################
 
 sScore = sentiment_score(dict_tagged_sentences)
